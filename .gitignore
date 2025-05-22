@@ -1,3 +1,9 @@
+checkpoint/*
+runs/*
+src/trainer/outputs
+src/trainer/runs
+wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
