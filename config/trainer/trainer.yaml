@@ -1,0 +1,59 @@
+# @package _global_
+
+# Basic experiment settings
+exp_name: "Test"
+seed: 1
+torch_deterministic: True
+cuda: True
+use_wandb: True
+wandb_project_name: "Multiverse"
+wandb_entity: null
+capture_video: False
+
+# Environment settings
+env_id: "PongNoFrameskip-v4"
+total_steps: 100_000
+steps_per_collection: 8256 # (4 * 8 * (128 + 1)) (Should be a factor of num_envs * (num_steps + 1)
+
+# World Model Parameters
+world_models:
+  - type: "iris"
+    name: "iris_1"
+    tokenizer: "iris/tokenizer/tokenizer_1"
+    transformer: "iris/transformer/transformer_1"
+    load_checkpoint: False
+  - type: "iris"
+    name: "iris_2"
+    tokenizer: "iris/tokenizer/tokenizer_1"
+    transformer: "iris/transformer/transformer_2"
+    load_checkpoint: False
+#  - name: "iris_3"
+#    tokenizer: "iris/tokenizer/tokenizer_2"
+#    transformer: "iris/transformer/transformer_2"
+#    load_checkpoint: True
+
+# Training parameters
+total_timesteps: 100_000
+num_envs: 8
+num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
+learning_rate: 2.5e-4
+anneal_lr: True
+
+# Evaluation
+eval_frequency: 1
+eval_episodes: 100
+max_eval_steps: 2000
+
+# PPO-specific parameters
+agent:
+  gamma: 0.99
+  gae_lambda: 0.95
+  num_minibatches: 16
+  update_epochs: 16
+  norm_adv: True
+  clip_coef: 0.1
+  clip_vloss: True
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: null
