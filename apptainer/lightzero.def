@@ -1,0 +1,60 @@
+Bootstrap: docker
+From: nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+
+%files
+    LightZero LightZero
+%post
+
+    # base os
+    apt-get -y update
+    apt-get install -y \
+            python3.10 \
+            python3-pip \
+            gcc \
+            g++ \
+            swig \
+            git \
+            build-essential \
+            wget \
+            libglib2.0-0 \
+            libsm6 \
+            libxrender1 \
+            libxext6 \
+
+    # install miniconda
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -f -p /opt/conda
+    rm Miniconda3-latest-Linux-x86_64.sh
+
+
+    # install conda components - add the packages you need here
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n multiverse python=3.10
+    conda activate multiverse
+
+    # python -m pip install --upgrade pip setuptools
+    # pip install pip -U
+    # pip install setuptools -U
+    pip install -r ./multiverse/requirements.txt
+
+%environment
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate multiverse
+
+%runscript
+
+    cd LightZero
+    if [ $JOB_TYPE = "pull_git" ]; then
+        git pull
+        git checkout $GIT_BRANCH
+        git pull
+    elif [ $JOB_TYPE = "run_experiment" ]; then
+        echo "Running experiment"
+        bash scripts/run_multiverse.sh $START_SEED $END_SEED $ENV_NAME $WANDB_API_KEY
+    elif [ $JOB_TYPE = "run_playground" ]; then
+        echo "Running playground"
+        bash scripts/run_playground.sh
+    elif [ $JOB_TYPE = "download_checkpoints" ]; then
+        echo "Downloading checkpoints"
+        bash scripts/download_checkpoints.sh
+    fi
