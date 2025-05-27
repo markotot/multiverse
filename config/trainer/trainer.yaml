@@ -8,7 +8,6 @@ cuda: True
 use_wandb: True
 wandb_project_name: "Multiverse"
 wandb_entity: null
-capture_video: False
 
 # Environment settings
 env_id: "PongNoFrameskip-v4"
@@ -21,23 +20,25 @@ world_models:
     name: "iris_1"
     tokenizer: "iris/tokenizer/tokenizer_1"
     transformer: "iris/transformer/transformer_1"
-    load_checkpoint: False
-  - type: "iris"
-    name: "iris_2"
-    tokenizer: "iris/tokenizer/tokenizer_1"
-    transformer: "iris/transformer/transformer_2"
-    load_checkpoint: False
+    load_checkpoint: True
+#  - type: "iris"
+#    name: "iris_2"
+#    tokenizer: "iris/tokenizer/tokenizer_1"
+#    transformer: "iris/transformer/transformer_2"
+#    load_checkpoint: False
 #  - name: "iris_3"
 #    tokenizer: "iris/tokenizer/tokenizer_2"
 #    transformer: "iris/transformer/transformer_2"
 #    load_checkpoint: True
 
 # Training parameters
-total_timesteps: 100_000
-num_envs: 8
-num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
-learning_rate: 2.5e-4
-anneal_lr: True
+training:
+  train_in: "wm"
+  total_timesteps: 100_000
+  num_envs: 8
+  num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
+  learning_rate: 2.5e-4
+  anneal_lr: True
 
 # Evaluation
 eval_frequency: 1

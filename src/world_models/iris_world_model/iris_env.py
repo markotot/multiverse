@@ -41,10 +41,10 @@ class IrisEnv(nn.Module):
         self.grey_scale_size = (84, 84)
         self.frame_stack_size = 4
 
-        self.observation_space = (self.frame_stack_size, *self.grey_scale_size)
-        self.action_space = 4
+        # self.observation_space = (self.frame_stack_size, *self.grey_scale_size)
+        # self.action_space = 4
 
-        self.framestack_observation_tokens = np.zeros((4, self.world_model.config.tokens_per_block - 1))
+        self.framestack_observation_tokens = np.zeros((self.frame_stack_size, self.world_model.config.tokens_per_block - 1))
         self.keys_values_wm,  self.obs_tokens, self._num_observations_tokens = None, None, None
 
 
@@ -175,10 +175,9 @@ class IrisEnv(nn.Module):
         rec = self.tokenizer.decode(z, should_postprocess=True)         # (B, C, H, W)
         return torch.clamp(rec, 0, 1)
 
-    def reset(self, dataset) -> [np.ndarray, dict]:
+    def reset(self, initial_observations) -> [np.ndarray, dict]:
 
         # Get the first observation from the buffer
-        initial_observations = dataset.rgb_buffer[:, 0]
         obs = self.reset_from_initial_observation(initial_observations) # Image passed through the encoder
         grayscale_obs = self.wm_obs_to_grayscale(obs)
         info = {"step": self.current_step}
