@@ -8,7 +8,7 @@ APOCRITA_USER = acw549
 #EXPERIMENT CONFIG
 START_SEED = 0
 END_SEED = 1
-ENV_NAME = "Pong" # set environment name
+ENV_NAME = "Breakout" # set environment name
 FULL_ENV_NAME := $(addsuffix NoFrameskip-v4,${ENV_NAME}) # add NoFrameskip-v4 to the environment name for openai gym
 RUN_NAME = "iris"
 
@@ -61,7 +61,7 @@ apocrita_qstat:
 
 .SILENT: local_run
 local_run:
-	sudo bash ./scripts/run_iris_local.sh ${NUM_SEEDS} ${FULL_ENV_NAME} ${WANDB_API_KEY}
+	bash ./scripts/run_multiverse.sh 1 1 ${FULL_ENV_NAME} ${WANDB_API_KEY}
 
 
 .SILENT: test

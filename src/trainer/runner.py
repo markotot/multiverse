@@ -6,10 +6,8 @@ import gymnasium as gym
 
 import random
 
-from hydra import initialize, compose
-from hydra.utils import instantiate
-from matplotlib import pyplot as plt
-from omegaconf import DictConfig, OmegaConf
+
+from omegaconf import OmegaConf
 from torch import optim, nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -19,11 +17,7 @@ from src.agent.actor_critic import Agent
 from src.environments.utils import make_collector_env
 from src.environments.dataset import Dataset
 from src.environments.training_atari_env import AtariGymEnv, AtariWMEnv
-from src.world_models.iris_world_model.networks.world_model import WorldModel
-from src.world_models.iris_world_model.iris_env import IrisEnv
 
-from src.visualization.plotting import plot_images
-from src.world_models.iris_world_model.utils import extract_state_dict
 
 
 class Runner:
@@ -63,9 +57,9 @@ class Runner:
 
         while self.current_iteration < self.total_iterations:
 
-            if self.current_iteration == 0:
-                new_dataset = self.collect_data()
-                self.add_to_dataset(new_dataset)
+            # if self.current_iteration == 0:
+            #     new_dataset = self.collect_data()
+            #     self.add_to_dataset(new_dataset)
 
             # for world_model in self.world_models:
             #
