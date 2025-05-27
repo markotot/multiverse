@@ -8,9 +8,9 @@ APOCRITA_USER = acw549
 #EXPERIMENT CONFIG
 START_SEED = 0
 END_SEED = 1
-ENV_NAME = "Breakout" # set environment name
+ENV_NAME = "Pong" # set environment name
 FULL_ENV_NAME := $(addsuffix NoFrameskip-v4,${ENV_NAME}) # add NoFrameskip-v4 to the environment name for openai gym
-RUN_NAME = "iris"
+RUN_NAME = "multiverse"
 
 
 
