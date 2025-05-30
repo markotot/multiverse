@@ -71,7 +71,7 @@ stable_baselines3==2.6.0
 sympy==1.13.1
 tensorboard==2.19.0
 tensorboard-data-server==0.7.2
-torch==2.5.1.
+torch==2.5.1
 torchaudio==2.20.1
 torchvision==2.5.1
 tqdm==4.67.1
