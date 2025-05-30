@@ -34,7 +34,7 @@ world_models:
 
 # Training parameters
 training:
-  save_every: 100
+  save_every: 10 # Save model every n iterations
   train_in: "gym" # Options: "gym", "wm"
   total_timesteps: 100_000 # Steps per training iteration
   num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
