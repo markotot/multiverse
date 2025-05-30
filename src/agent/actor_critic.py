@@ -39,3 +39,10 @@ class Agent(nn.Module):
             action = probs.sample()
 
         return action, probs.log_prob(action), probs.entropy(), value
+
+
+    def save_model(self, path):
+        torch.save(self.state_dict(), path)
+
+    def load_model(self, path):
+        self.load_state_dict(torch.load(path))

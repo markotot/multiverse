@@ -45,17 +45,27 @@ class Runner:
         self.collector_envs.reset()
         self.eval_envs.reset()
 
+        self.envs = self.create_training_envs()
+
         self.agent = Agent(action_space=self.collector_envs.single_action_space.n).to(self.device)
-        #self.world_models = self.initialize_world_models(self.cfg.world_models)
+
+        if self.cfg.agent.load_checkpoint_path is not None:
+            print(f"Loading agent model from {self.cfg.agent.load_checkpoint_path}")
+            self.agent.load_model(self.cfg.agent.load_checkpoint_path)
+
         self.agent_optimizer = optim.Adam(self.agent.parameters(), lr=self.cfg.training.learning_rate, eps=1e-5)
 
         self.total_iterations = self.cfg.total_steps // self.cfg.steps_per_collection
         self.current_iteration = 0
         self.dataset_buffer: Dataset = None
 
+
     def run(self):
 
         while self.current_iteration < self.total_iterations:
+
+            if self.current_iteration % self.cfg.training.save_every == 0:
+                self.save_checkpoint()
 
             # if self.current_iteration == 0:
             #     new_dataset = self.collect_data()
@@ -71,9 +81,7 @@ class Runner:
             #         world_model.evaluate_encoder(new_dataset)
 
             # metrics = self.train_agent(new_dataset)
-
-            envs = self.create_training_envs()
-            self.train_agent_in_env(envs=envs)
+            self.train_agent_in_env(envs=self.envs)
 
             total_reward = self.evaluate_agent()
             print(f"Iteration: {self.current_iteration}\t"
@@ -84,7 +92,10 @@ class Runner:
 
             self.current_iteration += 1
 
+
+
         self.writer.close()
+
 
     def create_training_envs(self):
         if self.cfg.training.train_in == "gym":
@@ -477,4 +488,10 @@ class Runner:
                 #print("SPS:", int(global_step / (time.time() - start_time)))
                 self.writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
-
+    def save_checkpoint(self):
+        print("Saving")
+        self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
+        if self.cfg.training.train_in == "wm":
+            for world_model in self.envs:
+                world_model.save_checkpoint(
+                    f"{self.cfg.save_path}/{self.cfg.env_id}_world_model-{world_model.env.name}_last.pt")

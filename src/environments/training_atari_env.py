@@ -38,6 +38,7 @@ class AtariGymEnv:
         done = np.logical_or(terminated, truncated)
         return obs, reward, done, info
 
+
 class AtariWMEnv:
     def __init__(self, env_id, num_envs, single_wm_cfg, device):
 
@@ -117,4 +118,7 @@ class AtariWMEnv:
 
         world_model = extract_state_dict(agent_state_dict, 'world_model')
         wm.world_model.load_state_dict(world_model)
+
+    def save_checkpoint(self, path):
+        self.env.save_model(path)
 

@@ -242,3 +242,12 @@ class IrisEnv(nn.Module):
 
         greyscale_obs = self.wm_obs_to_grayscale(decoded_observations)
         return greyscale_obs, reward, done, None
+
+    def save_model(self, path: str):
+        torch.save({
+            'tokenizer': self.tokenizer.state_dict(),
+            'world_model': self.world_model.state_dict(),
+            'optimizer_tokenizer': self.optimizer_tokenizer.state_dict(),
+            'optimizer_world_model': self.optimizer_world_model.state_dict(),
+            'current_step': self.current_step
+        }, path)
