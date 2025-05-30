@@ -36,10 +36,10 @@ class Runner:
             )
 
         self.collector_envs = gym.vector.SyncVectorEnv(
-            [make_collector_env(cfg.env_id) for _ in range(self.cfg.training.num_envs)],
+            [make_collector_env(cfg.env_id) for _ in range(self.cfg.num_collector_envs)],
         )
         self.eval_envs = gym.vector.SyncVectorEnv(
-            [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.training.num_envs)],
+            [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.num_eval_envs)],
         )
 
         self.collector_envs.reset()
@@ -99,11 +99,11 @@ class Runner:
 
     def create_training_envs(self):
         if self.cfg.training.train_in == "gym":
-            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=self.cfg.training.num_envs)]
+            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8)]
         elif self.cfg.training.train_in == "wm":
             envs = []
             for wm in self.cfg.world_models:
-                env = AtariWMEnv(self.cfg.env_id, self.cfg.training.num_envs, wm, self.device)
+                env = AtariWMEnv(self.cfg.env_id, wm, device=self.device)
                 envs.append(env)
         else:
             raise ValueError(f"Unknown training environment: {self.cfg.training.train_in}")
@@ -138,40 +138,40 @@ class Runner:
 
     def collect_data(self):
 
-        frames_per_env = self.cfg.steps_per_collection // self.cfg.training.num_envs
+        frames_per_env = self.cfg.steps_per_collection // self.cfg.num_collector_envs
         frame_stack = 4
 
         greyscale_shape = self.collector_envs.single_observation_space["greyscale"].shape
         rgb_shape = self.collector_envs.single_observation_space["rgb"].shape
 
-        grey_obs_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack + 1, *greyscale_shape[:-1]), dtype=np.uint8)
-        rgb_obs_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack + 1, *rgb_shape), dtype=np.uint8)
-        actions_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack), dtype=np.uint8)
+        grey_obs_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack + 1, *greyscale_shape[:-1]), dtype=np.uint8)
+        rgb_obs_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack + 1, *rgb_shape), dtype=np.uint8)
+        actions_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack), dtype=np.uint8)
 
-        logprobs_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack), dtype=np.float32)
-        values_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack), dtype=np.float32)
+        logprobs_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack), dtype=np.float32)
+        values_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack), dtype=np.float32)
 
-        rewards_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack), dtype=np.float32)
-        terminateds_buffer = np.ones(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack + 1), dtype=np.bool_)
-        truncateds_buffer = np.ones(shape=(self.cfg.training.num_envs, frames_per_env + frame_stack + 1), dtype=np.bool_)
+        rewards_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack), dtype=np.float32)
+        terminateds_buffer = np.ones(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack + 1), dtype=np.bool_)
+        truncateds_buffer = np.ones(shape=(self.cfg.num_collector_envs, frames_per_env + frame_stack + 1), dtype=np.bool_)
 
         # obs, _ = self.collector_envs.reset()
         obs = self.collector_envs._observations
 
         next_grey_obs = obs['greyscale'].squeeze(-1)
         next_rgb_obs = obs['rgb']
-        next_terminateds = np.zeros(shape=self.cfg.training.num_envs)
-        next_truncateds = np.zeros(shape=self.cfg.training.num_envs)
+        next_terminateds = np.zeros(shape=self.cfg.num_collector_envs)
+        next_truncateds = np.zeros(shape=self.cfg.num_collector_envs)
 
         total_rewards = []
-        rewards_per_episode = np.zeros(self.cfg.training.num_envs)
+        rewards_per_episode = np.zeros(self.cfg.num_collector_envs)
         for step in tqdm(range(frames_per_env + frame_stack), desc="Generating dataset"):
 
             # Make a random action for the first few steps
             if step < frame_stack:
-                action = np.random.randint(0, self.collector_envs.single_action_space.n, self.cfg.training.num_envs)
-                logprob = np.ones(shape=self.cfg.training.num_envs)
-                value = np.zeros(shape=self.cfg.training.num_envs)
+                action = np.random.randint(0, self.collector_envs.single_action_space.n, self.cfg.num_collector_envs)
+                logprob = np.ones(shape=self.cfg.num_collector_envs)
+                value = np.zeros(shape=self.cfg.num_collector_envs)
             else:
                 obs_stack = grey_obs_buffer[:, step - frame_stack:step, :, :]
                 obs_stack = torch.from_numpy(obs_stack).to(self.device)
@@ -201,8 +201,8 @@ class Runner:
                     total_rewards.append(rewards_per_episode[i])
                     rewards_per_episode[i] = 0
 
-        stacked_greyscale_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env, frame_stack, *greyscale_shape[:-1]), dtype=np.uint8)
-        stacked_rgb_buffer = np.empty(shape=(self.cfg.training.num_envs, frames_per_env, frame_stack, *rgb_shape), dtype=np.uint8)
+        stacked_greyscale_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env, frame_stack, *greyscale_shape[:-1]), dtype=np.uint8)
+        stacked_rgb_buffer = np.empty(shape=(self.cfg.num_collector_envs, frames_per_env, frame_stack, *rgb_shape), dtype=np.uint8)
         for i in range(frames_per_env):
             stacked_greyscale_buffer[:, i] = grey_obs_buffer[:, i:i + frame_stack, :, :]
             stacked_rgb_buffer[:, i] = rgb_obs_buffer[:, i:i + frame_stack, :, :, :]
@@ -235,19 +235,19 @@ class Runner:
         initial_steps = 4
         frame_stack = 4
 
-        grey_obs_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps + 1, *greyscale_shape[:-1]), dtype=np.uint8)
-        rgb_obs_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps + 1, *rgb_shape), dtype=np.uint8)
-        actions_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps), dtype=np.uint8)
-        rewards_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps), dtype=np.float32)
-        terminateds_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps), dtype=np.bool_)
-        truncateds_buffer = np.empty(shape=(self.cfg.training.num_envs, self.cfg.max_eval_steps), dtype=np.bool_)
+        grey_obs_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps + 1, *greyscale_shape[:-1]), dtype=np.uint8)
+        rgb_obs_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps + 1, *rgb_shape), dtype=np.uint8)
+        actions_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.uint8)
+        rewards_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.float32)
+        terminateds_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.bool_)
+        truncateds_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.bool_)
 
         obs, _ = self.eval_envs.reset()
         grey_obs_buffer[:, 0, :, :] = obs['greyscale'].squeeze(-1)
         rgb_obs_buffer[:, 0, :, :, :] = obs['rgb']
 
         total_rewards = []
-        rewards_per_episode = np.zeros(self.cfg.training.num_envs)
+        rewards_per_episode = np.zeros(self.cfg.num_eval_envs)
 
         pbar = tqdm(total=self.cfg.eval_episodes, desc="Evaluating agent")
 
@@ -260,7 +260,7 @@ class Runner:
                 break
             # Make a random action for the first few steps
             if step < initial_steps:
-                action = np.random.randint(0, 4, self.cfg.training.num_envs)
+                action = np.random.randint(0, 4, self.cfg.num_eval_envs)
             else:
                 obs_stack = grey_obs_buffer[:, step - frame_stack:step, :, :]  # Assume frame_stack < initial_steps
                 obs_stack = torch.from_numpy(obs_stack).to(self.device)
@@ -291,9 +291,7 @@ class Runner:
 
     def train_agent_in_env(self, envs):
 
-        batch_size = int(self.cfg.training.num_envs * self.cfg.training.num_steps)
-        minibatch_size = int(batch_size // self.cfg.agent.num_minibatches)
-        num_iterations = self.cfg.training.total_timesteps // batch_size
+
 
         # TRY NOT TO MODIFY: seeding
         random.seed(self.cfg.seed)
@@ -304,23 +302,27 @@ class Runner:
 
         for env in envs:
 
+            batch_size = int(env.num_envs * self.cfg.training.num_steps)
+            minibatch_size = int(batch_size // self.cfg.agent.num_minibatches)
+            num_iterations = self.cfg.training.total_timesteps // batch_size
+
             initial_obs, _ = env.reset()
             # ALGO Logic: Storage setup
             obs = torch.zeros(self.cfg.training.num_steps, *initial_obs.shape).to(self.device)
-            actions = torch.zeros((self.cfg.training.num_steps, self.cfg.training.num_envs)).to(self.device)
-            logprobs = torch.zeros((self.cfg.training.num_steps, self.cfg.training.num_envs)).to(self.device)
-            rewards = torch.zeros((self.cfg.training.num_steps, self.cfg.training.num_envs)).to(self.device)
-            dones = torch.zeros((self.cfg.training.num_steps, self.cfg.training.num_envs)).to(self.device)
-            values = torch.zeros((self.cfg.training.num_steps, self.cfg.training.num_envs)).to(self.device)
+            actions = torch.zeros((self.cfg.training.num_steps, env.num_envs)).to(self.device)
+            logprobs = torch.zeros((self.cfg.training.num_steps, env.num_envs)).to(self.device)
+            rewards = torch.zeros((self.cfg.training.num_steps, env.num_envs)).to(self.device)
+            dones = torch.zeros((self.cfg.training.num_steps, env.num_envs)).to(self.device)
+            values = torch.zeros((self.cfg.training.num_steps, env.num_envs)).to(self.device)
 
             # TRY NOT TO MODIFY: start the game
             global_step = 0
             start_time = time.time()
             next_obs = torch.Tensor(initial_obs).to(self.device)
-            next_done = torch.zeros(self.cfg.training.num_envs).to(self.device)
+            next_done = torch.zeros(env.num_envs).to(self.device)
 
-            total_return = np.zeros(shape=(self.cfg.training.num_envs,), dtype=np.float32)
-            total_length = np.zeros(shape=(self.cfg.training.num_envs,), dtype=np.float32)
+            total_return = np.zeros(shape=(env.num_envs,), dtype=np.float32)
+            total_length = np.zeros(shape=(env.num_envs,), dtype=np.float32)
 
             for iteration in tqdm(range(1, num_iterations + 1), desc="Training agent in WM"):
                 # Annealing the rate if instructed to do so.
@@ -331,7 +333,7 @@ class Runner:
 
                 # Collect agent training data
                 for step in range(0, self.cfg.training.num_steps):
-                    global_step += self.cfg.training.num_envs
+                    global_step += env.num_envs
                     obs[step] = next_obs
                     dones[step] = next_done
 
@@ -350,7 +352,7 @@ class Runner:
                     total_return += reward
                     total_length += 1
 
-                    for i in range(self.cfg.training.num_envs):
+                    for i in range(env.num_envs):
                         if next_done[i]:
                             self.writer.add_scalar("charts/episodic_return", total_return[i], global_step)
                             self.writer.add_scalar("charts/episodic_length", total_length[i], global_step)

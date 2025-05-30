@@ -13,7 +13,7 @@ wandb_entity: null
 env_id: "PongNoFrameskip-v4"
 total_steps: 100_000
 steps_per_collection: 8256 # (4 * 8 * (128 + 1)) (Should be a factor of num_envs * (num_steps + 1)
-
+num_collector_envs: 8
 save_path: "training_checkpoints"
 # World Model Parameters
 world_models:
@@ -35,14 +35,14 @@ world_models:
 # Training parameters
 training:
   save_every: 1
-  train_in: "gym" # Options: "gym", "world_model"
+  train_in: "wm" # Options: "gym", "wm"
   total_timesteps: 100_000
-  num_envs: 8
   num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
   learning_rate: 2.5e-4
   anneal_lr: True
 
 # Evaluation
+num_eval_envs: 8
 eval_frequency: 1
 eval_episodes: 100
 max_eval_steps: 2000

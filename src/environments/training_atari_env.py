@@ -22,13 +22,16 @@ def initialize_atari_envs():
 class AtariGymEnv:
     def __init__(self, env_id, num_envs):
 
-        self.envs = gym.vector.SyncVectorEnv([make_training_env(env_id) for _ in range(num_envs)])
+        self.num_envs = num_envs
+        self.envs = gym.vector.SyncVectorEnv([make_training_env(env_id) for _ in range(self.num_envs)])
 
         self.action_space = self.envs.action_space
         self.single_action_space = self.envs.single_action_space
 
         self.observation_space = self.envs.observation_space
         self.single_observation_space = self.envs.single_observation_space
+
+
 
     def reset(self):
         return self.envs.reset()
@@ -40,11 +43,15 @@ class AtariGymEnv:
 
 
 class AtariWMEnv:
-    def __init__(self, env_id, num_envs, single_wm_cfg, device):
+    def __init__(self, env_id, single_wm_cfg, device):
 
         self.env_id = env_id
-        self.initialization_env = gym.vector.SyncVectorEnv([make_collector_env(self.env_id) for _ in range(num_envs)])
-        self.env = self.initialize_world_model(single_wm_cfg, device)
+        x = gym.vector.SyncVectorEnv([make_collector_env(self.env_id) for _ in range(1)])
+        self.env = self.initialize_world_model(single_wm_cfg, x.single_action_space.n, device)
+
+        self.num_envs = self.env.training_cfg.world_model.batch_num_samples
+        self.initialization_env = gym.vector.SyncVectorEnv([make_collector_env(self.env_id) for _ in range(self.num_envs)])
+
 
         self.single_action_space = self.initialization_env.single_action_space
         obs_shape = self.initialization_env.observation_space['greyscale'].shape
@@ -53,12 +60,12 @@ class AtariWMEnv:
 
     def reset(self):
 
-        obs_stack = np.zeros(shape=(self.initialization_env.num_envs, self.env.frame_stack_size, 64, 64, 3), dtype=np.float32)
+        obs_stack = np.zeros(shape=(self.num_envs, self.env.frame_stack_size, 64, 64, 3), dtype=np.float32)
         observations, _ = self.initialization_env.reset()
         obs_stack[:, 0] = observations['rgb']
         # pick random numbers
         for i in range(1, self.env.frame_stack_size):
-            random_actions = np.random.randint(0, self.initialization_env.single_action_space.n, size=self.initialization_env.num_envs)
+            random_actions = np.random.randint(0, self.single_action_space.n, size=self.num_envs)
             next_obs, _, _, _, _ = self.initialization_env.step(random_actions)
             obs_stack[:, i] = next_obs['rgb']
 
@@ -68,7 +75,7 @@ class AtariWMEnv:
     def step(self, actions):
         return self.env.env_step(actions)
 
-    def initialize_world_model(self, single_wm_cfg, device) -> list[IrisEnv]:
+    def initialize_world_model(self, single_wm_cfg, single_action_space, device) -> list[IrisEnv]:
 
         if single_wm_cfg.type == "iris":
 
@@ -91,7 +98,7 @@ class AtariWMEnv:
             # Initialise the world model
             world_model = WorldModel(name=single_wm_cfg.name,
                                      obs_vocab_size=tokenizer.vocab_size,
-                                     act_vocab_size=self.initialization_env.single_action_space.n,
+                                     act_vocab_size=single_action_space,
                                      config=transformer_cfg,
                                      )
 
