@@ -492,8 +492,11 @@ class Runner:
 
     def save_checkpoint(self):
         print("Saving")
-        self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
+        if self.cfg.training.train_in == "gym":
+            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
+
         if self.cfg.training.train_in == "wm":
+            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_in_wm_last.pt")
             for world_model in self.envs:
                 world_model.save_checkpoint(
                     f"{self.cfg.save_path}/{self.cfg.env_id}_world_model-{world_model.env.name}_last.pt")
