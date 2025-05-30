@@ -35,7 +35,7 @@ From: nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
     # python -m pip install --upgrade pip setuptools
     # pip install pip -U
     # pip install setuptools -U
-    pip install --upgrade -r ./multiverse/requirements.txt
+    pip install -r ./multiverse/requirements.txt
 
 %environment
     . /opt/conda/etc/profile.d/conda.sh
