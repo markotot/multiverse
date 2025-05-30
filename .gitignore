@@ -1,4 +1,5 @@
 checkpoint/*
+training_checkpoints/*
 runs/*
 src/trainer/outputs
 src/trainer/runs
