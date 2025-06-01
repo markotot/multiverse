@@ -1,5 +1,12 @@
+
+
+# Training checkpoints
 checkpoint/*
 training_checkpoints/*
+# don't ignore .gitkeep file to make sure folder is uploaded to git
+!training_checkpoints/.gitkeep
+
+
 runs/*
 src/trainer/outputs
 src/trainer/runs
