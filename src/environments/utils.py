@@ -31,6 +31,28 @@ def make_training_env(env_id):
 
     return thunk
 
+def make_evaluation_env(env_id):
+    # Same as training env, but without EpisodicLifeEnv (no done on lives lost)
+    def thunk():
+
+        if env_id not in gym.envs.registry:
+            print("No env name found, trying to add to registry")
+            initialize_atari_envs()
+
+        env = gym.make(env_id)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = NoopResetEnv(env, noop_max=30)
+        env = MaxAndSkipEnv(env, skip=4)
+        if "FIRE" in env.unwrapped.get_action_meanings():
+            env = FireResetEnv(env)
+        env = ClipRewardEnv(env)
+        env = gym.wrappers.ResizeObservation(env, (84, 84))
+        env = gym.wrappers.GrayscaleObservation(env)
+        env = gym.wrappers.FrameStackObservation(env, 4)
+        return env
+
+    return thunk
+
 def make_collector_env(env_id):
     def thunk():
 

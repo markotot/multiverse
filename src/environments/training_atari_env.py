@@ -7,7 +7,7 @@ from stable_baselines3.common.atari_wrappers import NoopResetEnv, MaxAndSkipEnv,
     ClipRewardEnv
 import gymnasium as gym
 
-from src.environments.utils import make_training_env, make_collector_env
+from src.environments.utils import make_training_env, make_collector_env, make_evaluation_env
 from src.world_models.iris_world_model.iris_env import IrisEnv
 from src.world_models.iris_world_model.networks.world_model import WorldModel
 from src.world_models.iris_world_model.utils import extract_state_dict
@@ -20,10 +20,15 @@ def initialize_atari_envs():
 
 
 class AtariGymEnv:
-    def __init__(self, env_id, num_envs):
+    def __init__(self, env_id, num_envs, type='training'):
 
         self.num_envs = num_envs
-        self.envs = gym.vector.SyncVectorEnv([make_training_env(env_id) for _ in range(self.num_envs)])
+        if type == 'training':
+            self.envs = gym.vector.SyncVectorEnv([make_training_env(env_id) for _ in range(self.num_envs)])
+        elif type == 'evaluation':
+            self.envs = gym.vector.SyncVectorEnv([make_evaluation_env(env_id) for _ in range(self.num_envs)])
+        else:
+            raise ValueError('Atari Gym Env - unknown env type - pick either "training" or "evaluation"')
 
         self.action_space = self.envs.action_space
         self.single_action_space = self.envs.single_action_space

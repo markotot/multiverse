@@ -44,3 +44,63 @@ def plot_images(images, title, transpose):
     plt.show()
 
 
+def plot_images_grid(images, figsize=(12, 6)):
+    """
+    Plot grayscale images in a 2x4 grid
+
+    Args:
+        images: numpy array of shape [batch_size, height, width, 1]
+        figsize: tuple for figure size (width, height)
+    """
+    # Ensure we have at least 8 images for the 2x4 grid
+    num_images = min(8, images.shape[0])
+
+    fig, axes = plt.subplots(2, 4, figsize=figsize)
+    axes = axes.flatten()  # Flatten to easily iterate
+
+    for i in range(num_images):
+        # Remove the channel dimension for plotting (squeeze the last dimension)
+        img = images[i].squeeze()
+
+        axes[i].imshow(img, cmap='gray', vmin=0, vmax=255)
+        axes[i].set_title(f'Image {i + 1}')
+        axes[i].axis('off')  # Remove axis ticks and labels
+
+    # Hide any unused subplots
+    for i in range(num_images, 8):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+# If you want to normalize pixel values (in case they're not in [0,1] range):
+def plot_images_grid(images, figsize=(12, 6)):
+    """
+    Plot grayscale images in a 2x4 grid
+
+    Args:
+        images: numpy array of shape [batch_size, height, width, 1]
+        figsize: tuple for figure size (width, height)
+    """
+    # Ensure we have at least 8 images for the 2x4 grid
+    num_images = min(8, images.shape[0])
+
+    fig, axes = plt.subplots(2, 4, figsize=figsize)
+    axes = axes.flatten()  # Flatten to easily iterate
+
+    for i in range(num_images):
+        # Remove the channel dimension for plotting (squeeze the last dimension)
+        img = images[i].squeeze()
+
+        axes[i].imshow(img, cmap='gray', vmin=0, vmax=255)
+        axes[i].set_title(f'Image {i + 1}')
+        axes[i].axis('off')  # Remove axis ticks and labels
+
+    # Hide any unused subplots
+    for i in range(num_images, 8):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    plt.show()

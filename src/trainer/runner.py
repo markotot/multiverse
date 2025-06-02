@@ -17,7 +17,7 @@ from src.agent.actor_critic import Agent
 from src.environments.utils import make_collector_env
 from src.environments.dataset import Dataset
 from src.environments.training_atari_env import AtariGymEnv, AtariWMEnv
-
+from src.visualization.plotting import plot_images_grid
 
 
 class Runner:
@@ -41,6 +41,8 @@ class Runner:
         self.eval_envs = gym.vector.SyncVectorEnv(
             [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.num_eval_envs)],
         )
+
+        self.eval_envs =AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="evaluation")
 
         self.collector_envs.reset()
         self.eval_envs.reset()
@@ -81,9 +83,10 @@ class Runner:
             #         world_model.evaluate_encoder(new_dataset)
 
             # metrics = self.train_agent(new_dataset)
-            self.train_agent_in_env(envs=self.envs)
+            # self.train_agent_in_env(envs=self.envs)
 
-            total_reward = self.evaluate_agent()
+            #total_reward = self.evaluate_agent()
+            total_reward = self.evaluate_agent_v2()
             print(f"Iteration: {self.current_iteration}\t"
                   f"Mean reward: {np.mean(total_reward):.2f}\t"
                   f"Std: {np.std(total_reward):.2f}\t"
@@ -99,7 +102,7 @@ class Runner:
 
     def create_training_envs(self):
         if self.cfg.training.train_in == "gym":
-            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8)]
+            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="training")]
         elif self.cfg.training.train_in == "wm":
             envs = []
             for wm in self.cfg.world_models:
@@ -226,6 +229,40 @@ class Runner:
 
         return dataset
 
+    def evaluate_agent_v2(self):
+
+        obs, _ = self.eval_envs.reset()
+
+        step = 0
+        finished_episodes = 0
+        total_rewards = []
+        rewards_per_episode = np.zeros(shape=(8,))
+        pbar = tqdm(total=self.cfg.eval_episodes, desc="Evaluating agent")
+
+        while finished_episodes < self.cfg.eval_episodes:
+            if step >= self.cfg.max_eval_steps:
+                print(f"Max frames reached, evaluated {finished_episodes} episodes.")
+                break
+
+            obs = torch.from_numpy(obs).to(self.device)
+            action, logprob, _, value = self.agent.get_action_and_value(obs)
+            action = action.detach().cpu().numpy()
+
+            obs, rewards, dones, infos = self.eval_envs.step(action)
+            rewards_per_episode += rewards
+
+            for n, done in enumerate(dones):
+                if done:
+                    total_rewards.append(rewards_per_episode[n])
+                    rewards_per_episode[n] = 0
+                    finished_episodes += 1
+                    pbar.update(1)
+
+            step += 1
+
+        return np.array(total_rewards)
+
+
     def evaluate_agent(self):
 
         rgb_shape = (64, 64, 3)
@@ -270,6 +307,12 @@ class Runner:
             obs, rewards, terminateds, truncateds, infos = self.eval_envs.step(action)
             dones = np.logical_or(terminateds, truncateds)
             rewards_per_episode += rewards
+
+            # DEBUG PLOTTING
+            #plot_images_grid(obs['greyscale'])
+            # DEBUG PLOTTING
+            if step % 100 == 0:
+                print(step)
             for n, done in enumerate(dones):
                 if done:
                     total_rewards.append(rewards_per_episode[n])

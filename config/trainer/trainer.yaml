@@ -45,11 +45,11 @@ training:
 num_eval_envs: 8
 eval_frequency: 1
 eval_episodes: 100
-max_eval_steps: 2000
+max_eval_steps: 20_000
 
 # PPO-specific parameters
 agent:
-  load_checkpoint_path: null # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
+  load_checkpoint_path: "training_checkpoints/gym_pretrained/PongNoFrameskip-v4_agent_last.pt" # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
   gamma: 0.99
   gae_lambda: 0.95
   num_minibatches: 16
