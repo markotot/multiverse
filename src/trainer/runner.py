@@ -82,7 +82,7 @@ class Runner:
             #     if self.current_iteration % self.cfg.eval_frequency == 0:
             #         world_model.evaluate_encoder(new_dataset)
 
-            # self.train_agent_in_env(envs=self.envs)
+            self.train_agent_in_env(envs=self.envs)
 
             total_reward = self.evaluate_agent()
             print(f"Iteration: {self.current_iteration}\t"
