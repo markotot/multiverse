@@ -2,6 +2,7 @@
 
 # Training checkpoints
 checkpoint/*
+downloaded_checkpoints/*
 training_checkpoints/*
 # don't ignore .gitkeep file to make sure folder is uploaded to git
 !training_checkpoints/.gitkeep
