@@ -229,7 +229,7 @@ class Runner:
 
         return dataset
 
-    def evaluate_agent_v2(self):
+    def evaluate_agent(self):
 
         obs, _ = self.eval_envs.reset()
 
@@ -262,75 +262,6 @@ class Runner:
 
         return np.array(total_rewards)
 
-
-    def evaluate_agent(self):
-
-        rgb_shape = (64, 64, 3)
-        greyscale_shape = (84, 84, 1)
-
-        # Evaluation loop
-        initial_steps = 4
-        frame_stack = 4
-
-        grey_obs_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps + 1, *greyscale_shape[:-1]), dtype=np.uint8)
-        rgb_obs_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps + 1, *rgb_shape), dtype=np.uint8)
-        actions_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.uint8)
-        rewards_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.float32)
-        terminateds_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.bool_)
-        truncateds_buffer = np.empty(shape=(self.cfg.num_eval_envs, self.cfg.max_eval_steps), dtype=np.bool_)
-
-        obs, _ = self.eval_envs.reset()
-        grey_obs_buffer[:, 0, :, :] = obs['greyscale'].squeeze(-1)
-        rgb_obs_buffer[:, 0, :, :, :] = obs['rgb']
-
-        total_rewards = []
-        rewards_per_episode = np.zeros(self.cfg.num_eval_envs)
-
-        pbar = tqdm(total=self.cfg.eval_episodes, desc="Evaluating agent")
-
-        finished_episodes = 0
-        step = 0
-        while finished_episodes < self.cfg.eval_episodes:
-
-            if step >= self.cfg.max_eval_steps:
-                print(f"Max frames reached, evaluated {finished_episodes} episodes.")
-                break
-            # Make a random action for the first few steps
-            if step < initial_steps:
-                action = np.random.randint(0, 4, self.cfg.num_eval_envs)
-            else:
-                obs_stack = grey_obs_buffer[:, step - frame_stack:step, :, :]  # Assume frame_stack < initial_steps
-                obs_stack = torch.from_numpy(obs_stack).to(self.device)
-                action, logprob, _, value = self.agent.get_action_and_value(obs_stack)
-                action = action.detach().cpu().numpy()
-
-            obs, rewards, terminateds, truncateds, infos = self.eval_envs.step(action)
-            dones = np.logical_or(terminateds, truncateds)
-            rewards_per_episode += rewards
-
-            # DEBUG PLOTTING
-            #plot_images_grid(obs['greyscale'])
-            # DEBUG PLOTTING
-            if step % 100 == 0:
-                print(step)
-            for n, done in enumerate(dones):
-                if done:
-                    total_rewards.append(rewards_per_episode[n])
-                    rewards_per_episode[n] = 0
-                    finished_episodes += 1
-                    pbar.update(1)
-
-            grey_obs_buffer[:, step + 1, :, :] = obs['greyscale'].squeeze(-1)
-            rgb_obs_buffer[:, step + 1, :, :, :] = obs['rgb']
-            actions_buffer[:, step] = action
-            rewards_buffer[:, step] = rewards
-            terminateds_buffer[:, step] = terminateds
-            truncateds_buffer[:, step] = truncateds
-
-            step += 1
-
-        pbar.close()
-        return np.array(total_rewards)
 
     def train_agent_in_env(self, envs):
 
