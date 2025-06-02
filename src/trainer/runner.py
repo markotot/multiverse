@@ -84,8 +84,7 @@ class Runner:
 
             # self.train_agent_in_env(envs=self.envs)
 
-            #total_reward = self.evaluate_agent()
-            total_reward = self.evaluate_agent_v2()
+            total_reward = self.evaluate_agent()
             print(f"Iteration: {self.current_iteration}\t"
                   f"Mean reward: {np.mean(total_reward):.2f}\t"
                   f"Std: {np.std(total_reward):.2f}\t"
