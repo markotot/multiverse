@@ -76,13 +76,12 @@ class Runner:
             # for world_model in self.world_models:
             #
             #     # Train the world model
-            #     # wm_train_metrics = world_model.train_model(dataset=self.dataset_buffer)
+            #     wm_train_metrics = world_model.train_model(dataset=self.dataset_buffer)
             #
             #     # Evaluate the world model
             #     if self.current_iteration % self.cfg.eval_frequency == 0:
             #         world_model.evaluate_encoder(new_dataset)
 
-            # metrics = self.train_agent(new_dataset)
             # self.train_agent_in_env(envs=self.envs)
 
             #total_reward = self.evaluate_agent()
@@ -261,7 +260,6 @@ class Runner:
             step += 1
 
         return np.array(total_rewards)
-
 
     def train_agent_in_env(self, envs):
 
