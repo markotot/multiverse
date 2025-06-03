@@ -82,18 +82,10 @@ class Runner:
             #     if self.current_iteration % self.cfg.eval_frequency == 0:
             #         world_model.evaluate_encoder(new_dataset)
 
+            self.evaluate_agent()
             self.train_agent_in_env(envs=self.envs)
 
-            total_reward = self.evaluate_agent()
-            print(f"Iteration: {self.current_iteration}\t"
-                  f"Mean reward: {np.mean(total_reward):.2f}\t"
-                  f"Std: {np.std(total_reward):.2f}\t"
-                  f"Max: {np.max(total_reward):.2f}\t"
-                  f"Min: {np.min(total_reward):.2f}")
-
             self.current_iteration += 1
-
-
 
         self.writer.close()
 
@@ -116,6 +108,16 @@ class Runner:
         else:
             self.dataset_buffer.append(new_dataset)
 
+    def save_checkpoint(self):
+        print("Saving")
+        if self.cfg.training.train_in == "gym":
+            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
+
+        if self.cfg.training.train_in == "wm":
+            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_in_wm_last.pt")
+            for world_model in self.envs:
+                world_model.save_checkpoint(
+                    f"{self.cfg.save_path}/{self.cfg.env_id}_world_model-{world_model.env.name}_last.pt")
 
     def setup_seed_and_device(self):
         random.seed(self.cfg.seed)
@@ -234,7 +236,9 @@ class Runner:
         step = 0
         finished_episodes = 0
         total_rewards = []
+        total_episode_lengths = []
         rewards_per_episode = np.zeros(shape=(8,))
+        episode_lengths = np.zeros(shape=(8,))
         pbar = tqdm(total=self.cfg.eval_episodes, desc="Evaluating agent")
 
         while finished_episodes < self.cfg.eval_episodes:
@@ -252,13 +256,23 @@ class Runner:
             for n, done in enumerate(dones):
                 if done:
                     total_rewards.append(rewards_per_episode[n])
+                    total_episode_lengths.append(episode_lengths[n])
                     rewards_per_episode[n] = 0
+                    episode_lengths[n] = 0
                     finished_episodes += 1
                     pbar.update(1)
 
+            episode_lengths += 1
             step += 1
 
-        return np.array(total_rewards)
+        self.writer.add_scalar("eval/mean_episode_reward", np.mean(total_rewards), self.current_iteration)
+        self.writer.add_scalar("eval/min_reward", np.min(total_rewards), self.current_iteration)
+        self.writer.add_scalar("eval/max_reward", np.max(total_rewards), self.current_iteration)
+        self.writer.add_scalar("eval/std_reward", np.std(total_rewards), self.current_iteration)
+        self.writer.add_scalar("eval/mean_episode_length", np.mean(total_episode_lengths), self.current_iteration)
+        self.writer.add_scalar("eval/min_episode_length", np.min(total_episode_lengths), self.current_iteration)
+        self.writer.add_scalar("eval/max_episode_length", np.max(total_episode_lengths), self.current_iteration)
+        self.writer.add_scalar("eval/std_episode_length", np.std(total_episode_lengths), self.current_iteration)
 
     def train_agent_in_env(self, envs):
 
@@ -461,13 +475,4 @@ class Runner:
                 #print("SPS:", int(global_step / (time.time() - start_time)))
                 self.writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
-    def save_checkpoint(self):
-        print("Saving")
-        if self.cfg.training.train_in == "gym":
-            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
 
-        if self.cfg.training.train_in == "wm":
-            self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_in_wm_last.pt")
-            for world_model in self.envs:
-                world_model.save_checkpoint(
-                    f"{self.cfg.save_path}/{self.cfg.env_id}_world_model-{world_model.env.name}_last.pt")

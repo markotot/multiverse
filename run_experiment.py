@@ -3,7 +3,6 @@ from src.trainer.runner import Runner
 import sys
 
 
-## TODO: Check why training shows good scores but evaluation is not https://wandb.ai/game-ai/Multiverse/runs/63ozmskf?nw=nwusermtot
 
 def main():
 
