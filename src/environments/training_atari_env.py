@@ -20,15 +20,15 @@ def initialize_atari_envs():
 
 
 class AtariGymEnv:
-    def __init__(self, env_id, num_envs, type='training'):
+    def __init__(self, env_id, num_envs, env_type):
 
         self.num_envs = num_envs
-        if type == 'training':
+        if env_type == 'training':
             self.envs = gym.vector.SyncVectorEnv([make_training_env(env_id) for _ in range(self.num_envs)])
-        elif type == 'evaluation':
+        elif env_type == 'evaluation':
             self.envs = gym.vector.SyncVectorEnv([make_evaluation_env(env_id) for _ in range(self.num_envs)])
         else:
-            raise ValueError('Atari Gym Env - unknown env type - pick either "training" or "evaluation"')
+            raise ValueError('Atari Gym Env - unknown env_type - pick either "training" or "evaluation"')
 
         self.action_space = self.envs.action_space
         self.single_action_space = self.envs.single_action_space

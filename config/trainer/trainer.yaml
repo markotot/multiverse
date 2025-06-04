@@ -35,21 +35,23 @@ world_models:
 # Training parameters
 training:
   save_every: 10 # Save model every n iterations
-  train_in: "gym" # Options: "gym", "wm"
+  env_type: "wm" # Options: "gym", "wm"
   total_timesteps: 100_000 # Steps per training iteration
   num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
   learning_rate: 2.5e-4
   anneal_lr: True
 
 # Evaluation
-num_eval_envs: 8
-eval_frequency: 1
-eval_episodes: 100
-max_eval_steps: 20_000
+eval:
+  env_type: "wm" # Options: "gym", "wm"
+  num_envs: 8
+  eval_frequency: 1
+  total_episodes: 100
+  max_steps: 20_000
 
 # PPO-specific parameters
 agent:
-  load_checkpoint_path: "training_checkpoints/PongNoFrameskip-v4_agent_last.pt" # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
+  load_checkpoint_path: null # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
   gamma: 0.99
   gae_lambda: 0.95
   num_minibatches: 16

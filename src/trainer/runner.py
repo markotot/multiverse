@@ -39,15 +39,16 @@ class Runner:
             [make_collector_env(cfg.env_id) for _ in range(self.cfg.num_collector_envs)],
         )
         self.eval_envs = gym.vector.SyncVectorEnv(
-            [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.num_eval_envs)],
+            [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.eval.num_envs)],
         )
 
-        self.eval_envs =AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="evaluation")
+        #self.eval_envs =AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="evaluation")
 
         self.collector_envs.reset()
-        self.eval_envs.reset()
+        #self.eval_envs.reset()
 
-        self.envs = self.create_training_envs()
+        self.train_envs = self.create_training_envs()
+        self.eval_envs = self.create_eval_envs()
 
         self.agent = Agent(action_space=self.collector_envs.single_action_space.n).to(self.device)
 
@@ -79,11 +80,11 @@ class Runner:
             #     wm_train_metrics = world_model.train_model(dataset=self.dataset_buffer)
             #
             #     # Evaluate the world model
-            #     if self.current_iteration % self.cfg.eval_frequency == 0:
+            #     if self.current_iteration % self.cfg.eval.frequency == 0:
             #         world_model.evaluate_encoder(new_dataset)
 
-            # self.evaluate_agent()
-            self.train_agent_in_env(envs=self.envs)
+            self.evaluate_agent(envs=self.eval_envs)
+            self.train_agent_in_env(envs=self.train_envs)
 
             self.current_iteration += 1
 
@@ -91,15 +92,27 @@ class Runner:
 
 
     def create_training_envs(self):
-        if self.cfg.training.train_in == "gym":
-            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="training")]
-        elif self.cfg.training.train_in == "wm":
+        if self.cfg.training.env_type == "gym":
+            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, env_type="training")]
+        elif self.cfg.training.env_type == "wm":
             envs = []
             for wm in self.cfg.world_models:
                 env = AtariWMEnv(self.cfg.env_id, wm, device=self.device)
                 envs.append(env)
         else:
-            raise ValueError(f"Unknown training environment: {self.cfg.training.train_in}")
+            raise ValueError(f"Unknown training environment: {self.cfg.training.env_type}")
+        return envs
+
+    def create_eval_envs(self):
+        if self.cfg.eval.env_type == "gym":
+            envs = [AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, env_type="evaluation")]
+        elif self.cfg.eval.env_type == "wm":
+            envs = []
+            for wm in self.cfg.world_models:
+                env = AtariWMEnv(self.cfg.env_id, wm, device=self.device)
+                envs.append(env)
+        else:
+            raise ValueError(f"Unknown evaluation environment: {self.cfg.eval.env_type}")
         return envs
 
     def add_to_dataset(self, new_dataset: Dataset):
@@ -110,12 +123,12 @@ class Runner:
 
     def save_checkpoint(self):
         print("Saving")
-        if self.cfg.training.train_in == "gym":
+        if self.cfg.training.env_type == "gym":
             self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_last.pt")
 
-        if self.cfg.training.train_in == "wm":
+        if self.cfg.training.env_type == "wm":
             self.agent.save_model(f"{self.cfg.save_path}/{self.cfg.env_id}_agent_in_wm_last.pt")
-            for world_model in self.envs:
+            for world_model in self.train_envs:
                 world_model.save_checkpoint(
                     f"{self.cfg.save_path}/{self.cfg.env_id}_world_model-{world_model.env.name}_last.pt")
 
@@ -231,50 +244,51 @@ class Runner:
         return dataset
 
 
-    def evaluate_agent(self):
+    def evaluate_agent(self, envs):
 
-        obs, _ = self.eval_envs.reset()
+        for env in envs:
+            obs, _ = env.reset()
 
-        step = 0
-        finished_episodes = 0
-        total_rewards = []
-        total_episode_lengths = []
-        rewards_per_episode = np.zeros(shape=(8,))
-        episode_lengths = np.zeros(shape=(8,))
-        pbar = tqdm(total=self.cfg.eval_episodes, desc="Evaluating agent")
+            step = 0
+            finished_episodes = 0
+            total_rewards = []
+            total_episode_lengths = []
+            rewards_per_episode = np.zeros(shape=(env.num_envs,))
+            episode_lengths = np.zeros(shape=(env.num_envs,))
+            pbar = tqdm(total=self.cfg.eval.total_episodes, desc="Evaluating agent")
 
-        while finished_episodes < self.cfg.eval_episodes:
-            if step >= self.cfg.max_eval_steps:
-                print(f"Max frames reached, evaluated {finished_episodes} episodes.")
-                break
+            while finished_episodes < self.cfg.eval.total_episodes:
+                if step >= self.cfg.eval.max_steps:
+                    print(f"Max frames reached, evaluated {finished_episodes} episodes.")
+                    break
 
-            obs = torch.from_numpy(obs).to(self.device)
-            action, logprob, _, value = self.agent.get_action_and_value(obs)
-            action = action.detach().cpu().numpy()
+                obs = torch.Tensor(obs).to(self.device)
+                action, logprob, _, value = self.agent.get_action_and_value(obs)
+                action = action.detach().cpu().numpy()
 
-            obs, rewards, dones, infos = self.eval_envs.step(action)
-            rewards_per_episode += rewards
+                obs, rewards, dones, infos = env.step(action)
+                rewards_per_episode += rewards
 
-            for n, done in enumerate(dones):
-                if done:
-                    total_rewards.append(rewards_per_episode[n])
-                    total_episode_lengths.append(episode_lengths[n])
-                    rewards_per_episode[n] = 0
-                    episode_lengths[n] = 0
-                    finished_episodes += 1
-                    pbar.update(1)
+                for n, done in enumerate(dones):
+                    if done:
+                        total_rewards.append(rewards_per_episode[n])
+                        total_episode_lengths.append(episode_lengths[n])
+                        rewards_per_episode[n] = 0
+                        episode_lengths[n] = 0
+                        finished_episodes += 1
+                        pbar.update(1)
 
-            episode_lengths += 1
-            step += 1
+                episode_lengths += 1
+                step += 1
 
-        self.writer.add_scalar("eval/mean_episode_reward", np.mean(total_rewards), self.current_iteration)
-        self.writer.add_scalar("eval/min_reward", np.min(total_rewards), self.current_iteration)
-        self.writer.add_scalar("eval/max_reward", np.max(total_rewards), self.current_iteration)
-        self.writer.add_scalar("eval/std_reward", np.std(total_rewards), self.current_iteration)
-        self.writer.add_scalar("eval/mean_episode_length", np.mean(total_episode_lengths), self.current_iteration)
-        self.writer.add_scalar("eval/min_episode_length", np.min(total_episode_lengths), self.current_iteration)
-        self.writer.add_scalar("eval/max_episode_length", np.max(total_episode_lengths), self.current_iteration)
-        self.writer.add_scalar("eval/std_episode_length", np.std(total_episode_lengths), self.current_iteration)
+            self.writer.add_scalar(f"eval/mean_episode_reward", np.mean(total_rewards), self.current_iteration)
+            self.writer.add_scalar(f"eval/min_reward", np.min(total_rewards), self.current_iteration)
+            self.writer.add_scalar(f"eval/max_reward", np.max(total_rewards), self.current_iteration)
+            self.writer.add_scalar(f"eval/std_reward", np.std(total_rewards), self.current_iteration)
+            self.writer.add_scalar(f"eval/mean_episode_length", np.mean(total_episode_lengths), self.current_iteration)
+            self.writer.add_scalar(f"eval/min_episode_length", np.min(total_episode_lengths), self.current_iteration)
+            self.writer.add_scalar(f"eval/max_episode_length", np.max(total_episode_lengths), self.current_iteration)
+            self.writer.add_scalar(f"eval/std_episode_length", np.std(total_episode_lengths), self.current_iteration)
 
 
     def train_agent_in_env(self, envs):
