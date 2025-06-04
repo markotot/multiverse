@@ -57,7 +57,6 @@ class AtariWMEnv:
         self.num_envs = self.env.training_cfg.world_model.batch_num_samples
         self.initialization_env = gym.vector.SyncVectorEnv([make_collector_env(self.env_id) for _ in range(self.num_envs)])
 
-
         self.single_action_space = self.initialization_env.single_action_space
         obs_shape = self.initialization_env.observation_space['greyscale'].shape
         self.single_observation_space  = np.zeros(shape=(self.env.frame_stack_size, *obs_shape[1:-1]))

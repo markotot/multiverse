@@ -82,7 +82,7 @@ class Runner:
             #     if self.current_iteration % self.cfg.eval_frequency == 0:
             #         world_model.evaluate_encoder(new_dataset)
 
-            self.evaluate_agent()
+            # self.evaluate_agent()
             self.train_agent_in_env(envs=self.envs)
 
             self.current_iteration += 1
@@ -138,6 +138,7 @@ class Runner:
                 save_code=True,
                 dir="./runs/wandb"
             )
+
 
     def collect_data(self):
 
@@ -229,6 +230,7 @@ class Runner:
 
         return dataset
 
+
     def evaluate_agent(self):
 
         obs, _ = self.eval_envs.reset()
@@ -274,16 +276,14 @@ class Runner:
         self.writer.add_scalar("eval/max_episode_length", np.max(total_episode_lengths), self.current_iteration)
         self.writer.add_scalar("eval/std_episode_length", np.std(total_episode_lengths), self.current_iteration)
 
+
     def train_agent_in_env(self, envs):
-
-
 
         # TRY NOT TO MODIFY: seeding
         random.seed(self.cfg.seed)
         np.random.seed(self.cfg.seed)
         torch.manual_seed(self.cfg.seed)
         torch.backends.cudnn.deterministic = self.cfg.torch_deterministic
-
 
         for env in envs:
 
@@ -309,10 +309,10 @@ class Runner:
             total_return = np.zeros(shape=(env.num_envs,), dtype=np.float32)
             total_length = np.zeros(shape=(env.num_envs,), dtype=np.float32)
 
-            for iteration in tqdm(range(1, num_iterations + 1), desc="Training agent in WM"):
+            for iteration in tqdm(range(1, num_iterations + 1), desc=f"Training agent in"):
                 # Annealing the rate if instructed to do so.
                 if self.cfg.training.anneal_lr:
-                    frac = 1.0 - (iteration - 1.0) / num_iterations
+                    frac = 1.0 - (self.current_iteration - 1.0) / self.total_iterations
                     lrnow = frac * self.cfg.training.learning_rate
                     self.agent_optimizer.param_groups[0]["lr"] = lrnow
 
