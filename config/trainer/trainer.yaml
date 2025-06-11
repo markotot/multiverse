@@ -11,7 +11,7 @@ wandb_entity: null
 
 # Environment settings
 env_id: "PongNoFrameskip-v4"
-total_steps: 100_000 # total number of steps to run the collection and training
+total_steps: 10_000_000 # total number of steps to run the collection and training
 steps_per_collection: 8256 # (4 * 8 * (128 + 1)) (Should be a factor of num_envs * (num_steps + 1)
 num_collector_envs: 8
 save_path: "training_checkpoints"

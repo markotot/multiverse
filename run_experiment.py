@@ -2,6 +2,9 @@ from hydra import initialize, compose
 from src.trainer.runner import Runner
 import sys
 
+# TODO:
+#   Take a trained agent and run it in a world model and qualitatively look at the results.
+
 
 
 def main():
