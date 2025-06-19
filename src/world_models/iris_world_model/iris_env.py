@@ -199,8 +199,9 @@ class IrisEnv(nn.Module):
 
         # rescale to (84, 84) # (B, FS, ...)
         grayscale_obs = grayscale_obs.unsqueeze(1)
-        # grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size, mode='linear', align_corners=False)
-        grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size)
+        grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size, mode='bilinear', align_corners=False)
+        #grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size, mode='nearest')
+
         grayscale_obs = grayscale_obs.squeeze(1)
 
         grayscale_obs = einops.rearrange(grayscale_obs, '(b fs) h w -> b fs h w', fs=fs)

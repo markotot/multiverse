@@ -43,7 +43,7 @@ training:
 
 # Evaluation
 eval:
-  env_type: "gym" # Options: "gym", "wm"
+  env_type: "wm" # Options: "gym", "wm"
   num_envs: 8
   eval_frequency: 1
   total_episodes: 10
@@ -51,8 +51,8 @@ eval:
 
 # PPO-specific parameters
 agent:
-  load_checkpoint_path: null # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
-  #load_checkpoint_path: "training_checkpoints/gym_pretrained/PongNoFrameskip-v4_agent_last.pt"
+  #load_checkpoint_path: null # null for no checkpoint, example "training_checkpoints/PongNoFrameskip-v4_agent_last.pt"
+  load_checkpoint_path: "training_checkpoints/gym_pretrained/PongNoFrameskip-v4_agent_last.pt"
   gamma: 0.99
   gae_lambda: 0.95
   num_minibatches: 16
