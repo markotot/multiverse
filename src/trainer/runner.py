@@ -13,11 +13,14 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 import wandb
+from wandb.plot import visualize
+
 from src.agent.actor_critic import Agent
 from src.environments.utils import make_collector_env
 from src.environments.dataset import Dataset
 from src.environments.training_atari_env import AtariGymEnv, AtariWMEnv
 from src.visualization.plotting import plot_images_grid
+from src.visualization.videos import create_video_from_images
 
 
 class Runner:
@@ -38,14 +41,7 @@ class Runner:
         self.collector_envs = gym.vector.SyncVectorEnv(
             [make_collector_env(cfg.env_id) for _ in range(self.cfg.num_collector_envs)],
         )
-        self.eval_envs = gym.vector.SyncVectorEnv(
-            [make_collector_env(self.cfg.env_id) for _ in range(self.cfg.eval.num_envs)],
-        )
-
-        #self.eval_envs =AtariGymEnv(env_id=self.cfg.env_id, num_envs=8, type="evaluation")
-
         self.collector_envs.reset()
-        #self.eval_envs.reset()
 
         self.train_envs = self.create_training_envs()
         self.eval_envs = self.create_eval_envs()
@@ -257,10 +253,15 @@ class Runner:
             episode_lengths = np.zeros(shape=(env.num_envs,))
             pbar = tqdm(total=self.cfg.eval.total_episodes, desc="Evaluating agent")
 
+            record_observations = []
+            record_rewards = []
             while finished_episodes < self.cfg.eval.total_episodes:
                 if step >= self.cfg.eval.max_steps:
                     print(f"Max frames reached, evaluated {finished_episodes} episodes.")
                     break
+
+                if step % 100 == 0:
+                    print(step)
 
                 obs = torch.Tensor(obs).to(self.device)
                 action, logprob, _, value = self.agent.get_action_and_value(obs)
@@ -268,6 +269,12 @@ class Runner:
 
                 obs, rewards, dones, infos = env.step(action)
                 rewards_per_episode += rewards
+
+                if self.cfg.eval.env_type == "wm":
+                    record_observations.append(obs[0][0].detach().cpu().numpy())
+                else:
+                    record_observations.append(obs[0][0])
+                record_rewards.append(rewards_per_episode[0])
 
                 for n, done in enumerate(dones):
                     if done:
@@ -280,6 +287,15 @@ class Runner:
 
                 episode_lengths += 1
                 step += 1
+
+
+            create_video_from_images(
+                images=np.array(record_observations),  # Your numpy array of images
+                episode_returns=np.array(record_rewards),
+                output_path='./recordings/my_video.mp4',
+                fps=15,
+                scale_factor=6  # Makes 84x84 -> 504x504 for better visibility
+            )
 
             self.writer.add_scalar(f"eval/mean_episode_reward", np.mean(total_rewards), self.current_iteration)
             self.writer.add_scalar(f"eval/min_reward", np.min(total_rewards), self.current_iteration)

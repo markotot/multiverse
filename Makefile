@@ -63,6 +63,9 @@ apocrita_qstat:
 local_run:
 	bash ./scripts/run_multiverse.sh 1 1 ${FULL_ENV_NAME} ${WANDB_API_KEY}
 
+.SILENT: download_checkpoints_local
+download_checkpoints_local:
+	bash ./scripts/download_checkpoints_local.sh
 
 .SILENT: test
 test:

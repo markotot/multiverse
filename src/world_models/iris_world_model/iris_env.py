@@ -188,7 +188,9 @@ class IrisEnv(nn.Module):
 
         # convert to greyscale: # (B, FS, ...)
         fs = obs.shape[1]
-        luminosity_weights = torch.tensor([0.299, 0.587, 0.114], device=self.device)
+
+        luminosity_weights = torch.tensor([0.2125, 0.7154, 0.0721],  device=self.device)
+        #luminosity_weights = torch.tensor([0.299, 0.587, 0.114], device=self.device)
         luminosity_weights = luminosity_weights.view(1, 3, 1, 1)  # reshape for broadcasting
 
 
@@ -197,7 +199,8 @@ class IrisEnv(nn.Module):
 
         # rescale to (84, 84) # (B, FS, ...)
         grayscale_obs = grayscale_obs.unsqueeze(1)
-        grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size, mode='bilinear', align_corners=False)
+        # grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size, mode='linear', align_corners=False)
+        grayscale_obs = F.interpolate(grayscale_obs, size=self.grey_scale_size)
         grayscale_obs = grayscale_obs.squeeze(1)
 
         grayscale_obs = einops.rearrange(grayscale_obs, '(b fs) h w -> b fs h w', fs=fs)
