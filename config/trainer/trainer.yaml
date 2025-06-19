@@ -35,7 +35,7 @@ world_models:
 # Training parameters
 training:
   save_every: 10 # Save model every n iterations
-  env_type: "gym" # Options: "gym", "wm"
+  env_type: "wm" # Options: "gym", "wm"
   total_timesteps: 100_000 # Steps per training iteration
   num_steps: 128 # Number of steps to run in each environment per update (batch size = num_envs * num_steps)
   learning_rate: 2.5e-4
@@ -43,7 +43,7 @@ training:
 
 # Evaluation
 eval:
-  env_type: "wm" # Options: "gym", "wm"
+  env_type: "gym" # Options: "gym", "wm"
   num_envs: 8
   eval_frequency: 1
   total_episodes: 10
