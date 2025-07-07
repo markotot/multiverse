@@ -2,6 +2,8 @@
 
 # Training checkpoints
 checkpoint/*
+recordings/*
+data_dump/*
 downloaded_checkpoints/*
 training_checkpoints/*
 # don't ignore .gitkeep file to make sure folder is uploaded to git

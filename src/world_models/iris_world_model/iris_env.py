@@ -245,6 +245,18 @@ class IrisEnv(nn.Module):
                                                 fs=4)
 
         greyscale_obs = self.wm_obs_to_grayscale(decoded_observations)
+
+        # plot the greyscale obs
+        # numpy_observations = greyscale_obs.cpu().detach().numpy()[0]
+        # fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+        # for i in range(4):
+        #     axes[i].imshow(numpy_observations[i], cmap='gray')
+        # axes[i].set_title(f'Image {i + 1}')
+        # axes[i].axis('off')  # Remove axis ticks and labels
+        #
+        # plt.tight_layout()
+        # plt.show()
+        #
         return greyscale_obs, reward, done, None
 
     def save_model(self, path: str):

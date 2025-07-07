@@ -26,12 +26,12 @@ class Agent(nn.Module):
         self.critic = layer_init(nn.Linear(512, 1), std=1)
 
     def get_value(self, observation):
-        hidden = self.network(observation / 255.0)
+        hidden = self.network(observation)
         value = self.critic(hidden)
         return value
 
     def get_action_and_value(self, observation, action=None):
-        hidden = self.network(observation / 255.0)
+        hidden = self.network(observation)
         logits = self.actor(hidden)
         value = self.critic(hidden)
         probs = Categorical(logits=logits)

@@ -288,14 +288,14 @@ class Runner:
                 episode_lengths += 1
                 step += 1
 
-
-            create_video_from_images(
-                images=np.array(record_observations),  # Your numpy array of images
-                episode_returns=np.array(record_rewards),
-                output_path='./recordings/my_video.mp4',
-                fps=15,
-                scale_factor=6  # Makes 84x84 -> 504x504 for better visibility
-            )
+            if self.cfg.eval.save_video:
+                create_video_from_images(
+                    images=np.array(record_observations),  # Your numpy array of images
+                    episode_returns=np.array(record_rewards),
+                    output_path='./recordings/my_video.mp4',
+                    fps=15,
+                    scale_factor=6  # Makes 84x84 -> 504x504 for better visibility
+                )
 
             self.writer.add_scalar(f"eval/mean_episode_reward", np.mean(total_rewards), self.current_iteration)
             self.writer.add_scalar(f"eval/min_reward", np.min(total_rewards), self.current_iteration)

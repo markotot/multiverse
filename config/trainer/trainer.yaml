@@ -43,11 +43,12 @@ training:
 
 # Evaluation
 eval:
-  env_type: "wm" # Options: "gym", "wm"
+  env_type: "gym" # Options: "gym", "wm"
   num_envs: 8
   eval_frequency: 1
   total_episodes: 10
   max_steps: 10_000
+  save_video: False
 
 # PPO-specific parameters
 agent:

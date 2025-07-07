@@ -3,6 +3,7 @@ import torch
 from einops import einops
 from hydra import compose, initialize
 from hydra.utils import instantiate
+from matplotlib import pyplot as plt
 from stable_baselines3.common.atari_wrappers import NoopResetEnv, MaxAndSkipEnv, EpisodicLifeEnv, FireResetEnv, \
     ClipRewardEnv
 import gymnasium as gym
@@ -43,7 +44,21 @@ class AtariGymEnv:
 
     def step(self, action):
         obs, reward, terminated, truncated, info = self.envs.step(action)
+        obs = obs / 255.0 # normalize from [0, 255] -> [0, 1]
         done = np.logical_or(terminated, truncated)
+
+        ###### plot the greyscale obs
+        # numpy_observations = obs[0]
+        # fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+        # for i in range(4):
+        #     axes[i].imshow(numpy_observations[i], cmap='gray')
+        # axes[i].set_title(f'Image {i + 1}')
+        # axes[i].axis('off')  # Remove axis ticks and labels
+        #
+        # plt.tight_layout()
+        # plt.show()
+        ###### plot the greyscale obs
+
         return obs, reward, done, info
 
 
