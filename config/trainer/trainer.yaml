@@ -48,7 +48,7 @@ eval:
   eval_frequency: 1
   total_episodes: 8
   max_steps: 10_000
-  save_video: True
+  save_video: False
 
 # PPO-specific parameters
 agent:
