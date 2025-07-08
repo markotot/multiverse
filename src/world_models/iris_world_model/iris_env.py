@@ -142,7 +142,7 @@ class IrisEnv(nn.Module):
     def reset_from_initial_observation(self, observation: np.ndarray) -> list:
 
         obs = einops.rearrange(observation, 'b fs h w c -> (b fs) c h w')
-        obs = obs / 255.0 * 2 - 1  # Normalize to [-1, 1]
+        obs = obs / 255.0 # Normalize to [0, 1]
         obs = torch.from_numpy(obs).float().to(self.device)
         obs_tokens = self.tokenizer.encode(obs, should_preprocess=False).tokens  # (BL, K)
 
@@ -151,7 +151,7 @@ class IrisEnv(nn.Module):
             self._num_observations_tokens = num_observations_tokens
 
         fs = observation.shape[1]
-        unstacked_obs_tokens = obs_tokens[(fs-1)::fs] # Take the most resent observation from each framestack
+        unstacked_obs_tokens = obs_tokens[fs-1::fs] # Take the most resent observation from each framestack
         _ = self.refresh_keys_values_with_initial_obs_tokens(unstacked_obs_tokens)
 
         self.framestack_observation_tokens = einops.rearrange(obs_tokens, '(b fs) n -> b fs n', fs=fs)
