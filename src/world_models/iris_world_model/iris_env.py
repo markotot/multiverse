@@ -142,7 +142,7 @@ class IrisEnv(nn.Module):
     def reset_from_initial_observation(self, observation: np.ndarray) -> list:
 
         obs = einops.rearrange(observation, 'b fs h w c -> (b fs) c h w')
-        obs = obs / 255.0 # Normalize to [0, 1]
+        obs = obs / 255.0 * 2 - 1  # Normalize to [-1, 1]
         obs = torch.from_numpy(obs).float().to(self.device)
         obs_tokens = self.tokenizer.encode(obs, should_preprocess=False).tokens  # (BL, K)
 
@@ -155,8 +155,29 @@ class IrisEnv(nn.Module):
         _ = self.refresh_keys_values_with_initial_obs_tokens(unstacked_obs_tokens)
 
         self.framestack_observation_tokens = einops.rearrange(obs_tokens, '(b fs) n -> b fs n', fs=fs)
-        decoded_observations = self.decode_obs_tokens(obs_tokens)
+        decoded_observations = self.decode_obs_tokens(obs_tokens, should_preprocess=False)
         decoded_observations = einops.rearrange(decoded_observations, '(b fs) c h w -> b fs c h w', fs=fs)
+
+        ###### plot the greyscale obs
+        # numpy_observations = obs[0]
+        # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        # img1_np = obs.detach().cpu().numpy().squeeze()
+        # img2_np = decoded_observations.detach().cpu().numpy().squeeze()
+        #
+        # orig = np.transpose(img1_np[0], (1, 2, 0))
+        # redec = np.transpose(img2_np[0][0], (1, 2, 0))
+        # # Display the images
+        # ax1.imshow(orig)
+        # ax1.set_title('Image 1')
+        # ax1.axis('off')
+        #
+        # ax2.imshow(redec)
+        # ax2.set_title('Image 2')
+        # ax2.axis('off')
+        #
+        # plt.tight_layout()
+        # plt.show()
+        ###### plot the greyscale obs
 
         return decoded_observations
 
@@ -169,10 +190,10 @@ class IrisEnv(nn.Module):
         return outputs_wm.output_sequence  # (B, K, E)
 
     @torch.no_grad()
-    def decode_obs_tokens(self, obs_tokens) -> List[Image.Image]:
+    def decode_obs_tokens(self, obs_tokens, should_preprocess) -> List[Image.Image]:
         embedded_tokens = self.tokenizer.embedding(obs_tokens)     # (B, K, E)
         z = einops.rearrange(embedded_tokens, 'b (h w) e -> b e h w', h=int(np.sqrt(self.num_observations_tokens)))
-        rec = self.tokenizer.decode(z, should_postprocess=True)         # (B, C, H, W)
+        rec = self.tokenizer.decode(z, should_preprocess=should_preprocess)  # (B, C, H, W)
         return torch.clamp(rec, 0, 1)
 
     def reset(self, initial_observations) -> [np.ndarray, dict]:
@@ -240,7 +261,7 @@ class IrisEnv(nn.Module):
         self.framestack_observation_tokens[:, -1] = new_obs_tokens
 
         x = einops.rearrange(self.framestack_observation_tokens, 'b fs n -> (b fs) n')
-        x = self.decode_obs_tokens(x)
+        x = self.decode_obs_tokens(x, should_preprocess=True) # we want output to be normalized into greyscale [0,1]
         decoded_observations = einops.rearrange(x, '(b fs) c h w -> b fs c h w',
                                                 fs=4)
 

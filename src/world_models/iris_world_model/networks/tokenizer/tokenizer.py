@@ -48,7 +48,7 @@ class Tokenizer(nn.Module):
 
         observation = dataset['rgb'][:, :, 0, :, :, :]# Take the first frame of the frame stack
         observations = einops.rearrange(observation, 'b t h w c -> (b t) c h w')
-        observations = observations / 255.0 * 2 - 1 # Normalize to [-1, 1]
+        observations = observations / 255.0 # Normalize to [-1, 1]
         z, z_quantized, reconstructions = self(observations, should_preprocess=False, should_postprocess=False)
 
         # Codebook loss. Notes:
@@ -64,6 +64,7 @@ class Tokenizer(nn.Module):
 
     def encode(self, x: torch.Tensor, should_preprocess: bool) -> TokenizerEncoderOutput:
         if should_preprocess:
+            assert False
             x = self.preprocess_input(x)
         shape = x.shape  # (..., C, H, W)
         x = x.view(-1, *shape[-3:])
@@ -83,14 +84,22 @@ class Tokenizer(nn.Module):
 
         return TokenizerEncoderOutput(z, z_q, tokens)
 
-    def decode(self, z_q: torch.Tensor, should_postprocess: bool = False) -> torch.Tensor:
+    def decode(self, z_q: torch.Tensor, should_preprocess) -> torch.Tensor:
+        """
+
+        :param z_q:
+        :param should_preprocess: normalizes from [-1, 1] into [0, 1]
+        :return:
+        """
         shape = z_q.shape  # (..., E, h, w)
         z_q = z_q.view(-1, *shape[-3:])
         z_q = self.post_quant_conv(z_q)
         rec = self.decoder(z_q)
         rec = rec.reshape(*shape[:-3], *rec.shape[1:])
-        if should_postprocess:
-            rec = self.postprocess_output(rec)
+
+        if should_preprocess:
+            rec = (rec + 1) / 2
+
         return rec
 
     @torch.no_grad()

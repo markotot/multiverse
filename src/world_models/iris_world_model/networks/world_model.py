@@ -100,7 +100,7 @@ class WorldModel(nn.Module):
         with torch.no_grad():
             observation = batch['rgb'][:, :, 0, :, :, :]  # Take the first frame of the frame stack
             observation = einops.rearrange(observation, 'b t h w c -> b t c h w')
-            observation = observation / 255.0 * 2 - 1  # Normalize to [-1, 1]
+            observation = observation / 255.0
             obs_tokens = tokenizer.encode(observation, should_preprocess=False).tokens  # (BL, K)
 
         act_tokens = einops.rearrange(batch['actions'], 'b l -> b l 1')
